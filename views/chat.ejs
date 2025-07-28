@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>GUVI Chat Assistant</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Poppins', sans-serif;
+      background-color: #f0f2f5;
+    }
+
+    .chat-container {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      max-width: 500px;
+      margin: auto;
+      background-color: #fff;
+      border: 1px solid #ddd;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .chat-header {
+      background-color: #00b386;
+      color: white;
+      padding: 16px;
+      font-size: 18px;
+      font-weight: 600;
+      text-align: center;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .chat-output {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      background-color: #f9fafb;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .bubble {
+      max-width: 75%;
+      padding: 10px 14px;
+      margin: 6px 0;
+      border-radius: 18px;
+      font-size: 15px;
+      line-height: 1.4;
+      white-space: pre-wrap;
+    }
+
+    .user {
+      align-self: flex-end;
+      background-color: #e0f7f1;
+      color: #004d40;
+      border-bottom-right-radius: 4px;
+    }
+
+    .assistant {
+      align-self: flex-start;
+      background-color: #eef1f4;
+      color: #333;
+      border-bottom-left-radius: 4px;
+    }
+
+    .chat-form {
+      display: flex;
+      align-items: center;
+      padding: 10px 16px;
+      border-top: 1px solid #eee;
+      background-color: white;
+    }
+
+    .input-wrapper {
+      position: relative;
+      flex: 1;
+    }
+
+    .chat-form input[type="text"] {
+      width: 100%;
+      padding: 10px 40px 10px 14px;
+      border: 1px solid #ccc;
+      border-radius: 20px;
+      font-size: 15px;
+      outline: none;
+    }
+
+    .mic-btn {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      font-size: 22px;
+      cursor: pointer;
+      color: black;
+    }
+
+    .mic-btn.recording {
+      color: red;
+    }
+
+    .chat-form button[type="submit"] {
+      background-color: #00b386;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      margin-left: 10px;
+      border-radius: 20px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    .chat-form button:hover {
+      background-color: #00956e;
+    }
+
+    #status {
+      padding: 4px 16px;
+      color: #777;
+      font-size: 13px;
+      font-style: italic;
+    }
+
+    .chat-header button {
+      background: none;
+      border: none;
+      font-size: 20px;
+      color: white;
+      cursor: pointer;
+    }
+  </style>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+</head>
+
+<body style="overflow: hidden !important;">
+  <div class="chat-container">
+    <div class="chat-header">
+      <span>GUVI Assistant</span>
+      <button id="clear-chat" title="Clear Chat">
+        <span class="material-icons">delete</span>
+      </button>
+    </div>
+
+    <div id="chat-output" class="chat-output"></div>
+
+    <form id="chat-form" style="display: flex; padding: 12px; background: #fff; border-top: 1px solid #eee; gap: 8px; align-items: center;">
+  <div style="flex: 1; position: relative; display: flex; min-width: 0;">
+    <input type="text" id="prompt" placeholder="Type a message..." required
+      style="width: 100%; padding: 12px 40px 12px 16px; border-radius: 24px; border: 1px solid #ddd; font-size: 15px; outline: none; box-sizing: border-box; flex: 1;" />
+    <button type="button" id="mic-button" title="Speak"
+      style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; padding: 0; margin: 0;">
+      <span class="material-icons" style="font-size: 20px; color: #666;">mic</span>
+    </button>
+  </div>
+  <button type="submit"
+    style="background-color: #00B386; color: white; border: none; border-radius: 8px; cursor: pointer; padding: 8px; min-width: unset; height: auto; flex-shrink: 0; display: flex; align-items: center; justify-content: center;">
+    <span class="material-icons" style="font-size: 20px;">send</span>
+  </button>
+</form>
+
+
+    <div id="status"></div>
+  </div>
+
+  <script>
+    const chatOutput = document.getElementById('chat-output');
+    const form = document.getElementById('chat-form');
+    const promptInput = document.getElementById('prompt');
+    const status = document.getElementById('status');
+    const clearBtn = document.getElementById('clear-chat');
+    const micBtn = document.getElementById('mic-button');
+    let history = [];
+
+    function appendMessage(role, content) {
+      const div = document.createElement('div');
+      div.className = `bubble ${role}`;
+      div.textContent = content;
+      chatOutput.appendChild(div);
+      chatOutput.scrollTop = chatOutput.scrollHeight;
+      return div;
+    }
+
+    function saveChat() {
+      localStorage.setItem('guviChatHistory', JSON.stringify(history));
+    }
+
+    function loadChat() {
+      const saved = localStorage.getItem('guviChatHistory');
+      if (saved) {
+        history = JSON.parse(saved);
+        history.forEach(({ role, content }) => appendMessage(role, content));
+      }
+    }
+
+    clearBtn.addEventListener('click', () => {
+      history = [];
+      localStorage.removeItem('guviChatHistory');
+      chatOutput.innerHTML = '';
+      status.textContent = '';
+      window.location.reload();
+    });
+
+    loadChat();
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const prompt = promptInput.value.trim();
+      if (!prompt) return;
+
+      appendMessage('user', prompt);
+      history.push({ role: 'user', content: prompt });
+      promptInput.value = '';
+
+      const botDiv = appendMessage('assistant', '...');
+      status.textContent = '';
+
+      try {
+        const res = await fetch('/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt, history })
+        });
+
+        if (!res.ok) throw new Error('Model error');
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder('utf-8');
+        let buffer = '';
+        botDiv.textContent = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+
+          const lines = buffer.split('\n');
+          for (let i = 0; i < lines.length - 1; i++) {
+            try {
+              const json = JSON.parse(lines[i]);
+              const content = json.message?.content;
+              if (content) botDiv.textContent += content;
+            } catch (err) { }
+          }
+
+          buffer = lines[lines.length - 1];
+        }
+
+        history.push({ role: 'assistant', content: botDiv.textContent });
+        saveChat();
+      } catch (err) {
+        botDiv.textContent = 'Something went wrong. Try again.';
+      }
+    });
+
+    // Voice Recognition
+    let recognition;
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.lang = 'en-US';
+
+      micBtn.addEventListener('click', () => {
+        recognition.start();
+        micBtn.classList.add('recording');
+        micBtn.querySelector('.material-icons').style.color = '#0062a8';
+      });
+
+      recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        promptInput.value = transcript;
+      };
+
+      recognition.onerror = (event) => {
+        status.textContent = 'Voice error: ' + event.error;
+      };
+
+      recognition.onend = () => {
+        micBtn.classList.remove('recording');
+        micBtn.querySelector('.material-icons').style.color = 'black';
+      };
+    } else {
+      micBtn.style.display = 'none';
+    }
+  </script>
+</body>
+
+</html>

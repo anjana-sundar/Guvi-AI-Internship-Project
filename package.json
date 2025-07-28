@@ -1,0 +1,21 @@
+{
+  "name": "guvi",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "setup": "read -p 'Enter OLLAMA_HOST (leave blank to skip): ' host; if [ ! -z \"$host\" ]; then export OLLAMA_HOST=\"$host\"; fi; npm install && node index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "body-parser": "^2.2.0",
+    "csv-parser": "^3.2.0",
+    "ejs": "^3.1.10",
+    "express": "^5.1.0",
+    "express-session": "^1.18.2",
+    "node-fetch": "^3.3.2",
+    "uuid": "^11.1.0"
+  }
+}
