@@ -131,13 +131,27 @@ app.post('/chat', requireLogin, async (req, res) => {
     const user = req.session.user;
     const { prompt, history } = req.body;
 
-    const userDetails = `\n\n[USER DATA]\nName: ${user.name}\nCourses: ${user.courses.join(', ') || 'None'}\nOrders: ${user.orders.map(o => `${o.course} (${o.status})`).join(', ') || 'None'}\nPreferences: ${user.preferences.join(', ')}`;
-
+    const userDetails = `\n\n[USER DATA]
+    Name: ${user.name}
+    Courses: ${user.courses.join(', ') || 'None'}
+    Orders: ${user.orders.map(o => `${o.course} (${o.status}${o.reason ? ` - ${o.reason}` : ''})`).join(', ') || 'None'}
+    Preferences: ${user.preferences.join(', ') || 'None'}
+    Errors: ${user.orders.filter(o => o.status === 'Failed').map(o => `${o.course} - ${o.reason || 'Unknown error'}`).join(', ') || 'None'}`;
+    console.log(userDetails)
     try {
         const systemMessage = {
             role: 'system',
-            content: `You are a helpful and friendly GUVI AI assistant that helps customers ONLY with information about GUVI, such as courses, account, purchases, and support-related queries. Do NOT answer or recommend anything unrelated to GUVI, and do NOT direct customers to other platforms. Always answer as a friendly, knowledgeable assistant. The user details are attached in the prompt; use them to personalize your responses and help with course, order, or account questions. If you do not know the answer, say "please contact us at info@guvi.in for further assistance". I can help you with other questions related to GUVI courses or orders." DO NOT greet the user again if message history exists`
-        };
+            content: `You are a GUVI technical support assistant. 
+You only handle GUVI-related issues such as courses, accounts, purchases, or support queries. 
+Base all answers strictly on the details given by the user or in their account data. 
+Do NOT guess causes or give speculative reasons. 
+Only suggest contacting GUVI support (cs@guvi.in or +91 9736097320) if the user’s query is an actual issue you cannot resolve with the given details. 
+Never show support details for greetings, small talk, or simple questions you can answer. 
+Keep replies short, clear, and directly answering the question — no extra information, no marketing. 
+Do NOT request sensitive details such as card numbers, OTPs, or passwords. 
+If the user's message is only a greeting, respond with a short acknowledgment like "Hello, how can I help you?" and nothing else. 
+Do NOT greet again if there is previous message history. 
+Never include fluff, promotions, or course suggestions unless the user specifically asks.`};
 
         const ollamaRes = await fetch(OLLAMA_API, {
             method: 'POST',
