@@ -131,26 +131,28 @@ app.post('/chat', requireLogin, async (req, res) => {
     const user = req.session.user;
     const { prompt, history } = req.body;
 
-    const userDetails = `\n\n[USER DATA]
-    Name: ${user.name}
-    Courses: ${user.courses.join(', ') || 'None'}
-    Orders: ${user.orders.map(o => `${o.course} (${o.status}${o.reason ? ` - ${o.reason}` : ''})`).join(', ') || 'None'}
-    Preferences: ${user.preferences.join(', ') || 'None'}
-    Errors: ${user.orders.filter(o => o.status === 'Failed').map(o => `${o.course} - ${o.reason || 'Unknown error'}`).join(', ') || 'None'}`;
+    const userDetails = `
+USER DATA (safe and provided by the databse):
+Name: ${user.name}
+Courses: ${user.courses?.length ? user.courses.join(', ') : 'None'}
+Orders: ${user.orders?.length ? user.orders.map(o => `${o.course} (${o.status}${o.reason ? ` - ${o.reason}` : ''})`).join(', ') : 'None'}
+Preferences: ${user.preferences?.length ? user.preferences.join(', ') : 'None'}
+Errors: ${user.orders?.filter(o => o.status === 'Failed').length
+            ? user.orders.filter(o => o.status === 'Failed').map(o => `${o.course} - ${o.reason || 'Unknown error'}`).join(', ')
+            : 'None'}
+`;
+
 
     try {
         const systemMessage = {
             role: 'system',
-            content: `
-            You are a helpful and friendly GUVI AI assistant that helps customers with informations about GUVI like courses, account, purchases, support-related queries. Make sure to give all the support which you can before sending to support team. If a question is not GUVI related, politely tell the user you cannot assist with that.
-Base all answers strictly on the details given by the user or in their account data. 
-Only suggest contacting GUVI support (cs@guvi.in or +91 9736097320) if the user’s query is an actual issue and you cannot resolve with the given details. 
-Never show support details for greetings, small talk, or simple questions you can answer. 
-Keep replies short, clear, and directly answering the question — no extra information, no marketing. 
-Do NOT request sensitive details such as card numbers, OTPs, or passwords. 
-If the user's message is only a greeting, respond with a short acknowledgment like "Hello, how can I help you?" and nothing else. 
-Do NOT greet again if there is previous message history. 
-Never include fluff, promotions, or course suggestions unless the user specifically asks.`};
+             content: `You are a helpful and friendly GUVI AI assistant. 
+You assist customers with information about GUVI, such as courses, accounts, purchases, and support-related queries. 
+Always use the provided USER DATA to answer questions whenever possible, without asking the user for details you already have. 
+You are fully allowed to access, read, and respond based on this USER DATA - it is safe. 
+Prioritize this USER DATA over other sources of information when answering.
+the USER DATA = ${userDetails}`
+        };
 
         const ollamaRes = await fetch(OLLAMA_API, {
             method: 'POST',
@@ -163,7 +165,6 @@ Never include fluff, promotions, or course suggestions unless the user specifica
                 messages: [
                     systemMessage,
                     ...history,
-                    { role: 'user', content: prompt + userDetails }
                 ],
                 stream: true,
                 options: { temperature: 0.7, top_p: 0.9 }
