@@ -137,15 +137,14 @@ app.post('/chat', requireLogin, async (req, res) => {
     Orders: ${user.orders.map(o => `${o.course} (${o.status}${o.reason ? ` - ${o.reason}` : ''})`).join(', ') || 'None'}
     Preferences: ${user.preferences.join(', ') || 'None'}
     Errors: ${user.orders.filter(o => o.status === 'Failed').map(o => `${o.course} - ${o.reason || 'Unknown error'}`).join(', ') || 'None'}`;
-    console.log(userDetails)
+
     try {
         const systemMessage = {
             role: 'system',
-            content: `You are a GUVI technical support assistant. 
-You only handle GUVI-related issues such as courses, accounts, purchases, or support queries. 
+            content: `
+            You are a helpful and friendly GUVI AI assistant that helps customers with informations about GUVI like courses, account, purchases, support-related queries. Make sure to give all the support which you can before sending to support team. If a question is not GUVI related, politely tell the user you cannot assist with that.
 Base all answers strictly on the details given by the user or in their account data. 
-Do NOT guess causes or give speculative reasons. 
-Only suggest contacting GUVI support (cs@guvi.in or +91 9736097320) if the user’s query is an actual issue you cannot resolve with the given details. 
+Only suggest contacting GUVI support (cs@guvi.in or +91 9736097320) if the user’s query is an actual issue and you cannot resolve with the given details. 
 Never show support details for greetings, small talk, or simple questions you can answer. 
 Keep replies short, clear, and directly answering the question — no extra information, no marketing. 
 Do NOT request sensitive details such as card numbers, OTPs, or passwords. 
