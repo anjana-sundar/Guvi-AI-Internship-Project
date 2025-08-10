@@ -254,7 +254,7 @@
           buffer = lines[lines.length - 1];
         }
 
-        history.push({ role: 'assistant', content: botDiv.textContent });
+        history.push({ role: 'system', content: botDiv.textContent });
         saveChat();
       } catch (err) {
         botDiv.textContent = 'Something went wrong. Try again.';
