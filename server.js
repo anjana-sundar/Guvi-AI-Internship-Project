@@ -188,4 +188,42 @@ app.get('/logout', (req, res) => {
     });
 });
 
+// CSV File Routes
+app.get('/csv', requireLogin, (req, res) => {
+    if (!fs.existsSync(USERS_FILE)) {
+        fs.writeFileSync(USERS_FILE, 'email,name,preferences,orders,courses\n');
+    }
+    res.render('csv-manager', {
+        user: req.session.user,
+        filename: path.basename(USERS_FILE)
+    });
+});
+
+app.get('/csv/download', requireLogin, (req, res) => {
+    if (!fs.existsSync(USERS_FILE)) {
+        return res.status(404).send('File not found');
+    }
+    res.download(USERS_FILE, 'users.csv');
+});
+
+app.post('/csv/upload', requireLogin, (req, res) => {
+    if (!req.files || !req.files.csvFile) {
+        return res.status(400).json({ success: false, error: 'No file uploaded' });
+    }
+
+    const csvFile = req.files.csvFile;
+    try {
+        // Validate it's a CSV file
+        if (!csvFile.name.endsWith('.csv')) {
+            throw new Error('Only CSV files are allowed');
+        }
+
+        // Save the file
+        fs.writeFileSync(USERS_FILE, csvFile.data.toString());
+        res.json({ success: true });
+    } catch (err) {
+        res.status(400).json({ success: false, error: err.message });
+    }
+});
+
 app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
