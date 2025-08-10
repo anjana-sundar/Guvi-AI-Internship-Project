@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSV Manager - <%= filename %></title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .csv-manager {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .btn-csv {
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0;
+            font-size: 1.1rem;
+        }
+        .btn-download {
+            background-color: #28a745;
+            color: white;
+        }
+        .btn-upload {
+            background-color: #007bff;
+            color: white;
+        }
+        .file-input {
+            display: none;
+        }
+        .status-message {
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .status-message.show {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container py-5">
+        <div class="csv-manager">
+            <h2 class="text-center mb-4">CSV File Manager</h2>
+            <p class="text-muted text-center mb-4">Manage your user data CSV file</p>
+            
+            <div class="d-grid gap-3">
+                <a href="/csv/download" class="btn btn-download btn-csv">
+                    <i class="bi bi-download"></i> Download CSV
+                </a>
+                
+                <button id="uploadBtn" class="btn btn-upload btn-csv">
+                    <i class="bi bi-upload"></i> Upload CSV
+                </button>
+                <input type="file" id="fileInput" class="file-input" accept=".csv">
+            </div>
+            
+            <div class="alert alert-info mt-4">
+                <strong>File:</strong> <%= filename %><br>
+                <strong>Format:</strong> email,name,preferences,orders,courses<br>
+                <strong>Note:</strong> Orders should be valid JSON arrays
+            </div>
+            
+            <div id="statusMessage" class="status-message alert alert-success mt-3">
+                File uploaded successfully!
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const uploadBtn = document.getElementById('uploadBtn');
+            const fileInput = document.getElementById('fileInput');
+            const statusMessage = document.getElementById('statusMessage');
+            
+            uploadBtn.addEventListener('click', function() {
+                fileInput.click();
+            });
+            
+            fileInput.addEventListener('change', async function() {
+                if (fileInput.files.length === 0) return;
+                
+                const formData = new FormData();
+                formData.append('csvFile', fileInput.files[0]);
+                
+                try {
+                    const response = await fetch('/csv/upload', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        statusMessage.classList.remove('alert-danger');
+                        statusMessage.classList.add('alert-success');
+                        statusMessage.textContent = 'File uploaded successfully!';
+                    } else {
+                        throw new Error(result.error || 'Failed to upload file');
+                    }
+                } catch (error) {
+                    statusMessage.classList.remove('alert-success');
+                    statusMessage.classList.add('alert-danger');
+                    statusMessage.textContent = error.message;
+                }
+                
+                statusMessage.classList.add('show');
+                setTimeout(() => {
+                    statusMessage.classList.remove('show');
+                }, 3000);
+                
+                fileInput.value = '';
+            });
+        });
+    </script>
+</body>
+</html>
