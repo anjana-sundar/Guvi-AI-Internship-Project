@@ -5,15 +5,15 @@
  * - Adds working dashboard, login, and course purchasing
  */
 
-const express = require('express');
-const session = require('express-session');
-const path = require('path');
-const bodyParser = require('body-parser');
-const { v4: uuidv4 } = require('uuid');
-const fs = require('fs');
-const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
+const express = require('express'); //web server
+const session = require('express-session');  // to store user session
+const path = require('path'); // to load csv files
+const bodyParser = require('body-parser');   // to read the request input
+const { v4: uuidv4 } = require('uuid'); // to generate unique id
+const fs = require('fs'); // to read and write csv files
+const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args)); // to make http requests
 
-const app = express();
+const app = express(); // create a new web server
 const PORT = process.env.PORT || 3000;
 const OLLAMA_API = process.env.OLLAMA_API || 'http://localhost:11434/api/chat';
 
@@ -25,6 +25,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
+// to manage session by keeping them safe
 app.use(session({
     secret: 'guvi-secret',
     resave: false,
@@ -77,12 +78,12 @@ app.get('/login', (req, res) => {
 });
 
 app.post('/login', (req, res) => {
-    const { email } = req.body;
+    const { email, prefs } = req.body;
     if (!users[email]) {
         users[email] = {
             email,
             name: email.split('@')[0],
-            preferences: ['AI', 'Web Dev'],
+            preferences: prefs ? prefs.split(', ') : [],
             orders: [],
             courses: []
         };
@@ -129,10 +130,10 @@ app.get('/chat', requireLogin, (req, res) => {
 
 app.post('/chat', requireLogin, async (req, res) => {
     const user = req.session.user;
-    const { prompt, history } = req.body;
+    const { history } = req.body;
 
     const userDetails = `
-USER DATA (safe and provided by the databse):
+USER DATA (safe and provided by the database):
 Name: ${user.name}
 Courses: ${user.courses?.length ? user.courses.join(', ') : 'None'}
 Orders: ${user.orders?.length ? user.orders.map(o => `${o.course} (${o.status}${o.reason ? ` - ${o.reason}` : ''})`).join(', ') : 'None'}
